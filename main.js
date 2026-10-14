@@ -157,13 +157,24 @@ function openProjectModal(project) {
   modal.classList.add('modal--open');
   modal.setAttribute('aria-hidden', 'false');
 
+  // Lock body scroll so mobile/desktop background does not bounce
+  document.body.classList.add('modal-open-lock');
+  document.documentElement.classList.add('modal-open-lock');
+
   // Pause Lenis smooth scroll while modal is active
   if (typeof lenis !== 'undefined' && lenis) {
     lenis.stop();
   }
 
-  const closeBtn = modal.querySelector('.modal__close');
-  if (closeBtn) closeBtn.focus();
+  // Reset scroll container position to top and grant focus for keyboard navigation
+  const scrollContainer = modal.querySelector('.modal__scroll');
+  if (scrollContainer) {
+    scrollContainer.scrollTop = 0;
+    scrollContainer.focus();
+  } else {
+    const closeBtn = modal.querySelector('.modal__close');
+    if (closeBtn) closeBtn.focus();
+  }
 }
 
 /**
@@ -175,6 +186,10 @@ function closeProjectModal() {
 
   modal.classList.remove('modal--open');
   modal.setAttribute('aria-hidden', 'true');
+
+  // Unlock body scroll
+  document.body.classList.remove('modal-open-lock');
+  document.documentElement.classList.remove('modal-open-lock');
 
   // Resume Lenis smooth scroll
   if (typeof lenis !== 'undefined' && lenis) {
@@ -188,7 +203,7 @@ function closeProjectModal() {
 }
 
 /**
- * Attach close triggers and focus trap to the modal
+ * Attach close triggers, keyboard navigation, and touch/wheel controls to the modal
  */
 function setupModalListeners() {
   const modalClose = document.querySelector('.modal__close');
@@ -201,17 +216,48 @@ function setupModalListeners() {
     modalBackdrop.addEventListener('click', closeProjectModal);
   }
 
+  // Keyboard navigation inside modal (Escape, ArrowDown, PageDown, Space, ArrowUp, PageUp, Home, End)
   document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('project-modal');
+    if (!modal || !modal.classList.contains('modal--open')) return;
+
     if (e.key === 'Escape') {
       closeProjectModal();
+      return;
+    }
+
+    const scrollContainer = modal.querySelector('.modal__scroll');
+    if (!scrollContainer) return;
+
+    const isCloseBtnFocused = document.activeElement && document.activeElement.classList.contains('modal__close');
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      scrollContainer.scrollBy({ top: 140, behavior: 'smooth' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      scrollContainer.scrollBy({ top: -140, behavior: 'smooth' });
+    } else if (e.key === 'PageDown' || (e.key === ' ' && !isCloseBtnFocused)) {
+      e.preventDefault();
+      scrollContainer.scrollBy({ top: scrollContainer.clientHeight * 0.75, behavior: 'smooth' });
+    } else if (e.key === 'PageUp') {
+      e.preventDefault();
+      scrollContainer.scrollBy({ top: -scrollContainer.clientHeight * 0.75, behavior: 'smooth' });
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
     }
   });
 
   const modal = document.getElementById('project-modal');
   if (modal) {
+    // Focus trap for Tab key
     modal.addEventListener('keydown', (e) => {
       if (e.key !== 'Tab') return;
-      const focusable = modal.querySelectorAll('button, [tabindex]:not([tabindex="-1"]), a[href], img');
+      const focusable = modal.querySelectorAll('button, [tabindex="0"], a[href]');
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -224,6 +270,36 @@ function setupModalListeners() {
         first.focus();
       }
     });
+
+    // Ensure mouse wheel over any part of the modal (including margins/backdrop) routes to scroll container
+    modal.addEventListener('wheel', (e) => {
+      const scrollContainer = modal.querySelector('.modal__scroll');
+      if (!scrollContainer) return;
+      if (e.target === modal || e.target.classList.contains('modal__backdrop') || e.target.classList.contains('modal__container')) {
+        e.preventDefault();
+        scrollContainer.scrollTop += e.deltaY;
+      }
+    }, { passive: false });
+
+    // Touch gesture support on mobile backdrop/margins
+    let touchStartY = 0;
+    modal.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length > 0) {
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    modal.addEventListener('touchmove', (e) => {
+      const scrollContainer = modal.querySelector('.modal__scroll');
+      if (!scrollContainer) return;
+      if (e.target === modal || e.target.classList.contains('modal__backdrop')) {
+        const touchCurrentY = e.touches[0].clientY;
+        const deltaY = touchStartY - touchCurrentY;
+        scrollContainer.scrollTop += deltaY;
+        touchStartY = touchCurrentY;
+        e.preventDefault();
+      }
+    }, { passive: false });
   }
 }
 

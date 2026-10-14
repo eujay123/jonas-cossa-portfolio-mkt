@@ -755,6 +755,13 @@ main {
 /* ==========================================================================
    12. MODAL (.modal — #project-modal)
    ========================================================================== */
+body.modal-open-lock,
+html.modal-open-lock {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+}
+
 .modal {
   position: fixed;
   inset: 0;
@@ -765,6 +772,8 @@ main {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   transition: opacity var(--transition-normal),
               visibility var(--transition-normal);
 }
@@ -782,6 +791,7 @@ main {
   background-color: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  touch-action: pan-y;
 }
 
 .modal__container {
@@ -789,11 +799,18 @@ main {
   z-index: 1;
   width: 90vw;
   max-width: 1200px;
+  height: 90vh;
+  height: 90dvh;
   max-height: 90vh;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
   background-color: var(--grey-lightest);
   color: var(--grey-dark);
   border-radius: 8px;
   overflow: hidden;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   transform: translateY(20px);
   transition: transform var(--transition-smooth);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -810,17 +827,18 @@ main {
   right: var(--space-sm);
   width: 48px;
   height: 48px;
-  background: transparent;
-  border: none;
+  background: rgba(242, 242, 242, 0.85);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   color: var(--grey-dark);
   cursor: pointer;
-  z-index: 2;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   padding: 0;
-  transition: color var(--transition-fast), background-color var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .modal__close svg {
@@ -830,31 +848,43 @@ main {
 
 .modal__close:hover {
   color: var(--red);
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--white);
+  transform: scale(1.05);
 }
 
 .modal__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
   overflow-y: auto;
-  max-height: 90vh;
+  overflow-x: hidden;
   padding: var(--space-lg);
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--red) rgba(0, 0, 0, 0.08);
 }
 
 .modal__scroll::-webkit-scrollbar {
-  width: 6px;
+  width: 10px;
 }
 
 .modal__scroll::-webkit-scrollbar-track {
-  background: var(--grey-lightest);
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 5px;
 }
 
 .modal__scroll::-webkit-scrollbar-thumb {
-  background: var(--grey-light);
-  border-radius: 3px;
+  background: var(--grey-mid);
+  border-radius: 5px;
+  border: 2px solid var(--grey-lightest);
+  cursor: pointer;
 }
 
 .modal__scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--grey-mid);
+  background: var(--red);
 }
 
 .modal__header {
@@ -920,6 +950,9 @@ main {
   border-radius: 4px;
   object-fit: cover;
   background-color: var(--grey-light);
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: auto;
 }
 
 /* ==========================================================================
@@ -1011,8 +1044,25 @@ main {
     gap: var(--space-md);
   }
 
+  .modal__container {
+    width: 95vw;
+    max-width: 95vw;
+    height: 92dvh;
+    max-height: 92dvh;
+    border-radius: 6px;
+  }
+
+  .modal__close {
+    top: 8px;
+    right: 8px;
+    width: 44px;
+    height: 44px;
+    background: rgba(242, 242, 242, 0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
   .modal__scroll {
-    padding: var(--space-md);
+    padding: var(--space-md) var(--space-sm);
   }
 
   .modal__gallery {
