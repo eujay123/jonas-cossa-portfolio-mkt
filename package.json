@@ -1,0 +1,20 @@
+{
+  "name": "jonas-cossa-portfolio",
+  "version": "1.0.0",
+  "description": "Portfólio cinematográfico de Jonas Joaquim Cossa — Marketing, Branding e Design Visual",
+  "main": "index.html",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo \"Site estático pronto para publicação!\""
+  },
+  "keywords": [
+    "portfolio",
+    "marketing",
+    "branding",
+    "design",
+    "mozambique"
+  ],
+  "author": "Jonas Joaquim Cossa",
+  "license": "ISC"
+}
