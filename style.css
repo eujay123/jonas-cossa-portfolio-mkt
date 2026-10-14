@@ -550,7 +550,131 @@ main {
 }
 
 /* ==========================================================================
-   11. CONTACTS SECTION (.contacts — #contactos)
+   11. SYSTEMS & PLATFORMS SECTION (.systems — #sistemas)
+   ========================================================================== */
+.systems {
+  background-color: var(--grey-dark);
+  color: var(--grey-lightest);
+  padding: var(--space-xl) var(--space-md);
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.systems__container {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+}
+
+.systems__header {
+  margin-bottom: var(--space-lg);
+  max-width: 800px;
+}
+
+.systems__header .label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  color: var(--grey-light);
+}
+
+.systems__heading {
+  margin-bottom: var(--space-sm);
+}
+
+.systems__sub {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--grey-light);
+}
+
+.systems__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+.system-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  transition: transform var(--transition-smooth),
+              border-color var(--transition-normal),
+              background-color var(--transition-normal),
+              box-shadow var(--transition-smooth);
+}
+
+.system-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--red);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--red);
+}
+
+.system-card__icon-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform var(--transition-smooth);
+}
+
+.system-card:hover .system-card__icon-box {
+  transform: scale(1.08);
+}
+
+.system-card__icon-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.system-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.system-card__title {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--white);
+  margin: 0;
+  letter-spacing: -0.01em;
+  transition: color var(--transition-normal);
+}
+
+.system-card:hover .system-card__title {
+  color: var(--red);
+}
+
+.system-card__badge {
+  font-family: var(--font-body);
+  font-size: var(--text-micro);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--grey-mid);
+  font-weight: 500;
+  transition: color var(--transition-normal);
+}
+
+.system-card:hover .system-card__badge {
+  color: var(--grey-light);
+}
+
+/* ==========================================================================
+   12. CONTACTS SECTION (.contacts — #contactos)
    ========================================================================== */
 .contacts {
   background-color: var(--grey-dark);
@@ -832,6 +956,11 @@ main {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--space-md);
   }
+
+  .systems__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+  }
 }
 
 /* Mobile & Tablet Portrait (max-width: 768px) */
@@ -902,10 +1031,35 @@ main {
   .contacts {
     padding: var(--space-xl) var(--space-sm);
   }
+
+  .systems {
+    padding: var(--space-xl) var(--space-sm);
+  }
+
+  .systems__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .system-card {
+    padding: var(--space-sm);
+  }
+
+  .system-card__icon-box {
+    width: 48px;
+    height: 48px;
+  }
+
+  .system-card__title {
+    font-size: 0.95rem;
+  }
 }
 
 /* Small Mobile (max-width: 375px) */
 @media (max-width: 375px) {
+  .systems__grid {
+    grid-template-columns: 1fr;
+  }
   :root {
     --title-hero: clamp(3rem, 14vw, 4.5rem);
     --title-section: clamp(2.2rem, 10vw, 3.2rem);

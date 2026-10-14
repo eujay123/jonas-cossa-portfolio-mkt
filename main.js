@@ -590,6 +590,21 @@ function initAnimations() {
   aboutTl.fromTo('.about__body', { x: '120vw' }, { x: '0vw', ease: 'power2.out', duration: 0.3 }, 0.03);
   aboutTl.to('.about__heading', { x: '-110vw', ease: 'power1.in', duration: 0.35 }, 0.65);
   aboutTl.to('.about__body', { x: '-120vw', ease: 'power1.in', duration: 0.35 }, 0.62);
+
+  // 5. Systems Section Cards Stagger Animation
+  if (typeof gsap !== 'undefined') {
+    gsap.from('.system-card', {
+      y: 40,
+      opacity: 0,
+      stagger: 0.05,
+      duration: 0.6,
+      ease: 'power2.out',
+      scrollTrigger: {
+        trigger: '#sistemas',
+        start: 'top 80%',
+      },
+    });
+  }
 }
 
 // ═══ INITIALIZATION FLOW ═══
