@@ -21,11 +21,12 @@ const preloaderBar = document.getElementById('preloader-bar');
 // State flags and variables
 let usingCanvas = false;
 let frames = [];
-let totalFrames = 0;
+let totalFrames = 136;
 let currentFrameIndex = 0;
 let rafDrawId = null;
 let preloaderHidden = false;
 let updateVideoScrub = null;
+let siteStarted = false;
 
 // Modal state
 let currentProject = null;
@@ -49,10 +50,29 @@ window.addEventListener('resize', resizeCanvas);
  * @param {number} index - Index of frame to draw
  */
 function drawFrame(index) {
-  if (!usingCanvas || !ctx || !frames.length) return;
+  if (!usingCanvas || !ctx || !frames || !frames.length) return;
   const clampedIndex = Math.max(0, Math.min(frames.length - 1, index));
   currentFrameIndex = clampedIndex;
-  const img = frames[clampedIndex];
+
+  let img = frames[clampedIndex];
+  if (!img || !img.complete || img.naturalWidth === 0) {
+    // Look backwards for closest loaded frame
+    for (let i = clampedIndex - 1; i >= 0; i--) {
+      if (frames[i] && frames[i].complete && frames[i].naturalWidth > 0) {
+        img = frames[i];
+        break;
+      }
+    }
+    // Or forwards if not found
+    if (!img || !img.complete || img.naturalWidth === 0) {
+      for (let i = clampedIndex + 1; i < frames.length; i++) {
+        if (frames[i] && frames[i].complete && frames[i].naturalWidth > 0) {
+          img = frames[i];
+          break;
+        }
+      }
+    }
+  }
   if (!img || !img.complete || img.naturalWidth === 0) return;
 
   const imgRatio = img.naturalWidth / img.naturalHeight;
@@ -288,141 +308,108 @@ function loadProjects() {
 }
 
 /**
+ * Smoothly complete preloader and activate animations (guaranteed single-execution)
+ */
+function startSite() {
+  if (siteStarted) return;
+  siteStarted = true;
+
+  if (preloaderBar) {
+    preloaderBar.style.width = '100%';
+  }
+
+  if (usingCanvas) {
+    drawFrame(0);
+  }
+
+  // Smooth transition before hiding preloader
+  setTimeout(() => {
+    hidePreloader();
+    initAnimations();
+  }, 180);
+}
+
+/**
  * Check if extracted canvas frames exist on the server
  * @returns {Promise<{available: boolean, folder: string}>}
  */
-async function checkFramesAvailable() {
-  const deviceFolder = window.innerWidth < 768 ? 'mobile' : 'desktop';
-  const testUrl = `assets/frames/${deviceFolder}/frame_0000.webp`;
-
-  try {
-    const res = await fetch(testUrl, { method: 'HEAD' });
-    if (res.ok) return { available: true, folder: deviceFolder };
-  } catch (e) {
-    try {
-      const getRes = await fetch(testUrl, { method: 'GET' });
-      if (getRes.ok) return { available: true, folder: deviceFolder };
-    } catch (err) {
-      // frames not available in primary path
-    }
-  }
-
-  // Fallback check to desktop if mobile folder was attempted
-  if (deviceFolder === 'mobile') {
-    try {
-      const res = await fetch('assets/frames/desktop/frame_0000.webp', { method: 'HEAD' });
-      if (res.ok) return { available: true, folder: 'desktop' };
-    } catch (e) {
-      try {
-        const getRes = await fetch('assets/frames/desktop/frame_0000.webp', { method: 'GET' });
-        if (getRes.ok) return { available: true, folder: 'desktop' };
-      } catch (err) {
-        // frames not available
-      }
-    }
-  }
-
-  return { available: false, folder: 'desktop' };
-}
-
-/**
- * Detect total number of sequential frames using binary search
- * @param {string} folder - 'desktop' or 'mobile'
- * @returns {Promise<number>}
- */
-async function detectTotalFrames(folder) {
-  let low = 0;
-  let high = 300;
-  let maxFound = -1;
-
-  async function checkExists(idx) {
-    const frameNum = String(idx).padStart(4, '0');
-    const url = `assets/frames/${folder}/frame_${frameNum}.webp`;
-    try {
-      const res = await fetch(url, { method: 'HEAD' });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  }
-
-  const frame0 = await checkExists(0);
-  if (!frame0) return 0;
-  maxFound = 0;
-
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    const exists = await checkExists(mid);
-    if (exists) {
-      maxFound = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-
-  return maxFound + 1;
-}
-
-/**
- * Preload all image frames and update preloader progress
- * @param {string} folder - 'desktop' or 'mobile'
- * @param {number} count - Total frame count
- * @returns {Promise<Array<HTMLImageElement>>}
- */
-function preloadAllFrames(folder, count) {
+function checkFramesAvailable() {
   return new Promise((resolve) => {
-    if (count <= 0) {
-      resolve([]);
-      return;
-    }
+    const deviceFolder = window.innerWidth < 768 ? 'mobile' : 'desktop';
+    const testImg = new Image();
+    testImg.onload = () => resolve({ available: true, folder: deviceFolder });
+    testImg.onerror = () => {
+      if (deviceFolder === 'mobile') {
+        const desktopImg = new Image();
+        desktopImg.onload = () => resolve({ available: true, folder: 'desktop' });
+        desktopImg.onerror = () => resolve({ available: false, folder: 'desktop' });
+        desktopImg.src = 'assets/frames/desktop/frame_0000.webp';
+      } else {
+        resolve({ available: false, folder: 'desktop' });
+      }
+    };
+    testImg.src = `assets/frames/${deviceFolder}/frame_0000.webp`;
 
-    const loadedImages = new Array(count);
-    let loadedSoFar = 0;
-
-    for (let i = 0; i < count; i++) {
-      const img = new Image();
-      const frameNum = String(i).padStart(4, '0');
-      img.src = `assets/frames/${folder}/frame_${frameNum}.webp`;
-
-      const onComplete = () => {
-        loadedImages[i] = img;
-        loadedSoFar++;
-        if (preloaderBar) {
-          preloaderBar.style.width = `${Math.round((loadedSoFar / count) * 100)}%`;
-        }
-        if (loadedSoFar >= count) {
-          resolve(loadedImages);
-        }
-      };
-
-      img.onload = onComplete;
-      img.onerror = onComplete;
-    }
+    // Maximum 800ms wait for frame verification
+    setTimeout(() => {
+      resolve({ available: true, folder: deviceFolder });
+    }, 800);
   });
 }
 
 /**
- * Setup canvas frame playback and preload pipeline
+ * Stream remaining frames in the background without blocking the UI
+ * @param {string} folder - 'desktop' or 'mobile'
+ * @param {number} count - Total frame count
+ */
+function loadRemainingFrames(folder, count) {
+  for (let i = 1; i < count; i++) {
+    const img = new Image();
+    const frameNum = String(i).padStart(4, '0');
+    img.src = `assets/frames/${folder}/frame_${frameNum}.webp`;
+    img.onload = () => {
+      frames[i] = img;
+    };
+  }
+}
+
+/**
+ * Setup canvas frame playback with instant frame-0 unlock and background streaming
  * @param {string} folder - 'desktop' or 'mobile'
  */
-async function setupCanvas(folder) {
+function setupCanvas(folder) {
   usingCanvas = true;
+  totalFrames = 136;
+  frames = new Array(totalFrames);
+
   if (video) video.style.display = 'none';
   if (canvas) canvas.style.display = 'block';
   resizeCanvas();
 
-  totalFrames = await detectTotalFrames(folder);
-  if (totalFrames <= 0) {
-    totalFrames = 136;
-  }
+  // Load the first frame immediately for display
+  const firstFrame = new Image();
+  firstFrame.src = `assets/frames/${folder}/frame_0000.webp`;
 
-  frames = await preloadAllFrames(folder, totalFrames);
-  drawFrame(0);
+  firstFrame.onload = () => {
+    frames[0] = firstFrame;
+    drawFrame(0);
+    startSite();
+    loadRemainingFrames(folder, totalFrames);
+  };
 
-  if (preloaderBar) preloaderBar.style.width = '100%';
-  hidePreloader();
-  initAnimations();
+  firstFrame.onerror = () => {
+    console.warn('Falha no frame inicial, a recorrer ao fallback de vídeo.');
+    setupVideoFallback();
+  };
+
+  // Hard safety timeout: unlock the website regardless of slow network
+  setTimeout(() => {
+    if (!siteStarted) {
+      console.warn('Timeout de segurança atingido. A desbloquear o site.');
+      startSite();
+      loadRemainingFrames(folder, totalFrames);
+    }
+  }, 1200);
 }
 
 /**
@@ -454,37 +441,20 @@ function setupVideoFallback() {
     }
   };
 
-  let readyHandled = false;
-  function onReady() {
-    if (readyHandled) return;
-    readyHandled = true;
-    if (preloaderBar) preloaderBar.style.width = '100%';
-    hidePreloader();
-    initAnimations();
-  }
-
   if (video) {
     video.addEventListener('loadedmetadata', () => {
       video.currentTime = 0;
     });
 
-    video.addEventListener('progress', () => {
-      if (video.buffered.length > 0 && video.duration > 0 && preloaderBar) {
-        const pct = Math.min(95, Math.round((video.buffered.end(0) / video.duration) * 100));
-        preloaderBar.style.width = `${pct}%`;
-      }
-    });
-
-    if (video.readyState >= 3) {
-      onReady();
+    if (video.readyState >= 2) {
+      startSite();
     } else {
-      video.addEventListener('canplaythrough', onReady, { once: true });
-      video.addEventListener('canplay', onReady, { once: true });
-      // Safety timeout in case autoplay/cache delays canplaythrough
-      setTimeout(onReady, 3500);
+      video.addEventListener('canplay', () => startSite(), { once: true });
+      video.addEventListener('loadeddata', () => startSite(), { once: true });
+      setTimeout(startSite, 1500);
     }
   } else {
-    onReady();
+    startSite();
   }
 }
 
@@ -608,7 +578,7 @@ function initAnimations() {
 }
 
 // ═══ INITIALIZATION FLOW ═══
-document.addEventListener('DOMContentLoaded', async () => {
+function boot() {
   // Register GSAP plugins
   if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
     gsap.registerPlugin(ScrollTrigger);
@@ -621,10 +591,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   resizeCanvas();
 
   // Check whether extracted video frames are present
-  const frameCheck = await checkFramesAvailable();
-  if (frameCheck.available) {
-    setupCanvas(frameCheck.folder);
-  } else {
-    setupVideoFallback();
-  }
-});
+  checkFramesAvailable().then((frameCheck) => {
+    if (frameCheck.available) {
+      setupCanvas(frameCheck.folder);
+    } else {
+      setupVideoFallback();
+    }
+  });
+
+  // Ultimate safety fallback: unlock site under any circumstance after 2s
+  setTimeout(() => {
+    if (!siteStarted) {
+      console.warn('Fallback global de inicialização acionado.');
+      startSite();
+    }
+  }, 2000);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+
